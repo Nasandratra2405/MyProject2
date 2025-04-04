@@ -74,8 +74,86 @@
                     <h2 class="m-0 fs-2">@yield('title', 'Dashboard Technicien')</h2>
                 </div>
                 <div class="d-flex align-items-center">
-                    <i class="bi bi-person-circle me-2"></i>
-                    <span class="fw-bold">Bonjour, {{ Auth::user()->name }}</span>
+                    <!-- Enhanced Notification Dropdown -->
+                    @isset($notifs)
+                    <div class="dropdown ms-3 me-3">
+                        <button class="btn btn-light btn-sm position-relative rounded-circle shadow-sm p-2"
+                            type="button" id="messageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-envelope fs-5 text-primary"></i>
+                            @if($notifs->where('est_lu', 0)->count() > 0)
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ $notifs->where('est_lu', 0)->count() }}
+                                <span class="visually-hidden">messages non lus</span>
+                            </span>
+                            @endif
+                        </button>
+
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-0"
+                            aria-labelledby="messageDropdown"
+                            id="messageDropdownMenu"
+                            style="min-width: 280px; max-height: 350px; overflow-y: auto;">
+
+                            <!-- Notification Header -->
+                            <li class="dropdown-header bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-primary">Notifications</span>
+                                @if($notifs->where('est_lu', 0)->count() > 0)
+                                <span class="badge bg-primary rounded-pill">{{ $notifs->where('est_lu', 0)->count() }}</span>
+                                @endif
+                            </li>
+
+                            <div class="dropdown-divider m-0"></div>
+
+                            <!-- Notifications List -->
+                            @if(count($notifs) > 0)
+                            @php $hasUnread = false; @endphp
+
+                            @foreach($notifs as $notif)
+                            @if($notif->est_lu != 1)
+                            @php $hasUnread = true; @endphp
+                            <li>
+                                <a class="dropdown-item py-2 px-3 d-flex align-items-center {{ $notif->est_vu == 0 ? 'bg-light' : '' }}"
+                                    href="{{ route('technicien.historiques') }}"
+                                    data-id="{{ $notif->id }}"
+                                    onclick="markAsRead(this)">
+                                    <div class="me-2">
+                                        <i class="bi bi-info-circle{{ $notif->est_vu == 0 ? '-fill text-primary' : ' text-secondary' }}"></i>
+                                    </div>
+                                    <div class="{{ $notif->est_vu == 0 ? 'fw-bold' : 'text-muted' }}">
+                                        {{ $notif->message }}
+                                        <div class="small text-muted mt-1">{{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}</div>
+                                    </div>
+                                </a>
+                            </li>
+                            <div class="dropdown-divider m-0"></div>
+                            @endif
+                            @endforeach
+
+                            @if(!$hasUnread)
+                            <li>
+                                <div class="dropdown-item text-center py-3 text-muted">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    Aucune notification
+                                </div>
+                            </li>
+                            @endif
+                            @else
+                            <li>
+                                <div class="dropdown-item text-center py-3 text-muted">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    Aucune notification
+                                </div>
+                            </li>
+                            @endif
+
+                        </ul>
+                    </div>
+                    @endisset
+
+                    <!-- User Profile -->
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-person-circle fs-5 me-2"></i>
+                        <span class="fw-bold">Bonjour, {{ Auth::user()->name }}</span>
+                    </div>
                 </div>
             </nav>
 
@@ -107,7 +185,28 @@
                     }
                 });
             });
+
+            const dropdownButton = document.getElementById('messageDropdown');
+            const dropdownMenu = document.getElementById('messageDropdownMenu');
+
+
         });
+
+        function markAsRead(element) {
+            let notifId = element.getAttribute("data-id");
+
+            fetch('/notifications/mark-as-read/' + notifId, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                }).then(response => response.json())
+                .then(data => {
+                    pass; //lol
+                }).catch(error => console.error('Erreur:', error));
+        }
     </script>
     @yield('scripts')
 </body>
